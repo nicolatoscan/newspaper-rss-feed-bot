@@ -16,8 +16,8 @@ const patternUrl = new RegExp('^(https?:\\/\\/)?'+ // protocol
     '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
     '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
 
-bot.start((ctx) => ctx.reply('Hi! Send me a RSS feed and I will keep you updated!'));
-bot.help((ctx) => ctx.reply('Hi! Send me a RSS feed and I will keep you updated!'));
+bot.start((ctx) => ctx.reply('Hi! Send me a newspaper RSS feed and I will keep you updated!'));
+bot.help((ctx) => ctx.reply('Hi! Send me a newspaper RSS feed and I will keep you updated!'));
 
 bot.command('rss', (ctx) => {
     const myFeeds = Object.keys(feeds).filter((url) => feeds[url].has(ctx.chat.id));
@@ -26,6 +26,11 @@ bot.command('rss', (ctx) => {
 
 bot.command('remove', async (ctx) => {
     const rssUrl = ctx.message.text.split(' ')[1];
+    if (!rssUrl) {
+        ctx.reply('Use:\n<code>/remove rss-url</code>', { parse_mode: 'HTML' } );
+        return;
+    }
+
     const userId = ctx.message.from?.id;
     if (rssUrl in feeds) {
         feeds[rssUrl].delete(userId);
@@ -71,7 +76,6 @@ feeder.on('error', () => {});
 
 setInterval(async () => {
     const next = toSend.pop();
-    console.log(next);
     if (next) {
         try {
             await bot.telegram.sendMessage(next[0], next[1]);
