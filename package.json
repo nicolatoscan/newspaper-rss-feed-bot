@@ -1,0 +1,31 @@
+{
+  "name": "newspaper-rss-feed-bot",
+  "version": "1.0.0",
+  "description": "A Telegram bot to get your favourites newspapers articles through RSS feed",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node build/bot.js",
+    "build": "tsc",
+    "dev": "ts-node src/bot.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nicolatoscan/newspaper-rss-feed-bot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nicolatoscan/newspaper-rss-feed-bot/issues"
+  },
+  "homepage": "https://github.com/nicolatoscan/newspaper-rss-feed-bot#readme",
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.3"
+  },
+  "dependencies": {
+    "axios": "^1.2.0",
+    "dotenv": "^16.0.3",
+    "rss-feed-emitter": "^3.2.3",
+    "telegraf": "^4.11.2"
+  }
+}
