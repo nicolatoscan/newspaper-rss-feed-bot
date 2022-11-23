@@ -9,6 +9,12 @@ const REFRESH_TIME = 5 * 60 * 1000;
 const feeder = new RssFeedEmitter();
 const bot = new Telegraf(process.env.BOT_TOKEN ?? '');
 const feeds: { [url: string]: Set<number> } = {};
+const patternUrl = new RegExp('^(https?:\\/\\/)?'+ // protocol
+    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+    '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
 
 bot.start((ctx) => ctx.reply('Hi! Send me a RSS feed and I will keep you updated!'));
 bot.help((ctx) => ctx.reply('Hi! Send me a RSS feed and I will keep you updated!'));
@@ -31,16 +37,27 @@ bot.command('remove', async (ctx) => {
 bot.on('text', async (ctx) => {
     const rssUrl = ctx.message.text;
     const userId = ctx.message.from?.id;
-
-    if (rssUrl in feeds) {
-        feeds[rssUrl].add(userId);
+    
+    if (!!patternUrl.test(rssUrl)) {
+        
+        if (rssUrl in feeds) {
+            feeds[rssUrl].add(userId);
+        } else {
+            try {
+                feeder.add({ url: rssUrl, refresh: REFRESH_TIME });
+                feeds[rssUrl] = new Set([userId]);
+            } catch (e) {
+                ctx.reply('Invalid RSS feed');
+                return;
+            }
+        }
+        
+        ctx.reply(`Subscribed to ${rssUrl}`);
+        console.log(`${userId} subscribed to ${rssUrl}`);
+        save();
     } else {
-        feeds[rssUrl] = new Set([userId]);
-        feeder.add({ url: rssUrl, refresh: REFRESH_TIME });
+        ctx.reply('Un url DIOCANE!');
     }
-
-    ctx.reply('Subscribed to ' + rssUrl);
-    save();
 });
 
 const toSend: [number, string][] = []
@@ -50,11 +67,14 @@ feeder.on('new-item', (item: any) => {
     }
 });
 
-setInterval(() => {
+feeder.on('error', () => {});
+
+setInterval(async () => {
     const next = toSend.pop();
+    console.log(next);
     if (next) {
         try {
-            bot.telegram.sendMessage(next[0], next[1]);
+            await bot.telegram.sendMessage(next[0], next[1]);
         } catch (e) {
             console.log(`Could not send message to ${next[0]}`);
         }
@@ -68,14 +88,17 @@ function save() {
 }
 function load() {
     if (fs.existsSync(FILE_PATH)) {
+        const urls: string[] = [];
         const data = fs.readFileSync(FILE_PATH, 'utf-8').split('\n');
         for (const line of data) {
             if (line) {
                 const [url, ...userIds] = line.split(',');
                 feeds[url] = new Set(userIds.map((id) => parseInt(id)));
-                feeder.add({ url: url, refresh: REFRESH_TIME });
+                urls.push(url);
             }
         }
+
+        feeder.add({ url: urls, refresh: REFRESH_TIME });
         console.log('Loaded feeds from file');
     }
 }
