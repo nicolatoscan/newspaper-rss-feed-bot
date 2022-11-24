@@ -2,28 +2,25 @@ import fs from 'fs';
 import RssFeedEmitter from 'rss-feed-emitter';
 import { Telegraf } from "telegraf";
 import * as dotenv from 'dotenv';
+import og from 'open-graph-scraper';
 dotenv.config();
 
 const FILE_PATH = './users.csv';
 const REFRESH_TIME = 5 * 60 * 1000;
+const patternUrl = new RegExp('^(https?:\\/\\/)?((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|((\\d{1,3}\\.){3}\\d{1,3}))(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*(\\?[;&a-z\\d%_.~+=-]*)?(\\#[-a-z\\d_]*)?$','i');
+
+const feeds: { [url: string]: Set<number> } = {};
 const feeder = new RssFeedEmitter();
 const bot = new Telegraf(process.env.BOT_TOKEN ?? '');
-const feeds: { [url: string]: Set<number> } = {};
-const patternUrl = new RegExp('^(https?:\\/\\/)?'+ // protocol
-    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-    '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
 
+
+// ---------- BOT COMMANDS ----------
 bot.start((ctx) => ctx.reply('Hi! Send me a newspaper RSS feed and I will keep you updated!'));
 bot.help((ctx) => ctx.reply('Hi! Send me a newspaper RSS feed and I will keep you updated!'));
-
 bot.command('rss', (ctx) => {
     const myFeeds = Object.keys(feeds).filter((url) => feeds[url].has(ctx.chat.id));
     ctx.reply(myFeeds.length > 0 ? myFeeds.join('\n') : 'No feeds');
 });
-
 bot.command('remove', async (ctx) => {
     const rssUrl = ctx.message.text.split(' ')[1];
     if (!rssUrl) {
@@ -38,7 +35,6 @@ bot.command('remove', async (ctx) => {
     ctx.reply('Unsubscribed from ' + rssUrl);
     save();
 });
-
 bot.on('text', async (ctx) => {
     const rssUrl = ctx.message.text;
     const userId = ctx.message.from?.id;
@@ -65,27 +61,44 @@ bot.on('text', async (ctx) => {
     }
 });
 
-const toSend: [number, string][] = []
+// ---------- Notifications ----------
+const toSend: {
+    userId: number;
+    title: string;
+    link: string;
+}[] = []
 feeder.on('new-item', (item: any) => {
     for (const userId of feeds[item.meta.link]) {
-        toSend.push([userId, item.link]);
+        toSend.push({
+            userId,
+            title: item.title,
+            link: item.link,
+        });
+        // console.log(item['media:content']);
     }
 });
-
-feeder.on('error', () => {});
-
 setInterval(async () => {
     const next = toSend.pop();
     if (next) {
+        const res = (await og({ url: next.link })).result as any;
+        const description = res?.ogDescription ?? '';
+        const imgUrl = res?.ogImage?.url ?? null;
+        const siteName = res?.ogSiteName ?? res?.alAndroidAppName ?? '';
+        const section = res?.articleSection ?? '';
+
         try {
-            await bot.telegram.sendMessage(next[0], next[1]);
+            bot.telegram.sendPhoto(next.userId, imgUrl, {
+                caption: `<a href="${next.link}">${next.title}</a>\n\n${description}\n\n<b>${siteName}</b> ${section ? '#' + section.replace(' ', '') : ''}`,
+                parse_mode: 'HTML',
+            });
         } catch (e) {
-            console.log(`Could not send message to ${next[0]}`);
+            console.log(`Could not send message to ${next.userId}`);
         }
     }
 }, 500);
+feeder.on('error', () => {});
 
-
+// ---------- DB ----------
 function save() {
     const data = Object.keys(feeds).map((url) => [url, ...feeds[url]].join(',') ).join('\n');
     fs.writeFileSync(FILE_PATH, data);
@@ -107,9 +120,10 @@ function load() {
     }
 }
 
+
+// ---------- START ----------
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
-
 bot.launch();
-console.log('Bot started');
 load();
+console.log('Bot started');
