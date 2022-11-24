@@ -5,8 +5,8 @@ import * as dotenv from 'dotenv';
 import og from 'open-graph-scraper';
 dotenv.config();
 
-const FILE_PATH = './users.csv';
-const REFRESH_TIME = 5 * 60 * 1000;
+const FILE_PATH = process.env.FILE_PATH ?? './users.csv';
+const REFRESH_TIME = +(process.env.POLLING_INTERVAL_MINUTES ?? 1);
 const patternUrl = new RegExp('^(https?:\\/\\/)?((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|((\\d{1,3}\\.){3}\\d{1,3}))(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*(\\?[;&a-z\\d%_.~+=-]*)?(\\#[-a-z\\d_]*)?$','i');
 
 const feeds: { [url: string]: Set<number> } = {};
