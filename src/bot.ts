@@ -15,8 +15,8 @@ const bot = new Telegraf(process.env.BOT_TOKEN ?? '');
 
 
 // ---------- BOT COMMANDS ----------
-bot.start((ctx) => ctx.reply('Hi! Send me a newspaper RSS feed and I will keep you updated!'));
-bot.help((ctx) => ctx.reply('Hi! Send me a newspaper RSS feed and I will keep you updated!'));
+bot.start((ctx) => ctx.reply('Hi! Send me some newspaper RSS feeds and I will keep you updated!'));
+bot.help((ctx) => ctx.reply('Hi! Send me some newspaper RSS feeds and I will keep you updated!'));
 bot.command('rss', (ctx) => {
     const myFeeds = Object.keys(feeds).filter((url) => feeds[url].has(ctx.chat.id));
     ctx.reply(myFeeds.length > 0 ? myFeeds.join('\n') : 'No feeds');
