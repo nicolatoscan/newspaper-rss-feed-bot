@@ -1,4 +1,5 @@
 # newspaper-rss-feed-bot
 
-- npm i 
+amministratore di https://t.me/mortoggi
 
+prende tutti gli articoli de il post che annunciano morti
