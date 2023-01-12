@@ -12,71 +12,51 @@ const patternUrl = new RegExp('^(https?:\\/\\/)?((([a-z\\d]([a-z\\d-]*[a-z\\d])*
 const feeds: { [url: string]: Set<number> } = {};
 const feeder = new RssFeedEmitter();
 const bot = new Telegraf(process.env.BOT_TOKEN ?? '');
+const channelid = -1001859135789;
 
+const ilpost = 'https://www.ilpost.it/feed'
+const test = 'http://lorem-rss.herokuapp.com/feed?unit=second&interval=30'
+
+feeder.add({ url: ilpost, refresh: REFRESH_TIME });
+//feeder.add({ url: test, refresh: REFRESH_TIME });
 
 // ---------- BOT COMMANDS ----------
 bot.start((ctx) => ctx.reply('Hi! Send me some newspaper RSS feeds and I will keep you updated!'));
 bot.help((ctx) => ctx.reply('Hi! Send me some newspaper RSS feeds and I will keep you updated!'));
+
 bot.command('rss', (ctx) => {
     const myFeeds = Object.keys(feeds).filter((url) => feeds[url].has(ctx.chat.id));
     ctx.reply(myFeeds.length > 0 ? myFeeds.join('\n') : 'No feeds');
 });
-bot.command('remove', async (ctx) => {
-    const rssUrl = ctx.message.text.split(' ')[1];
-    if (!rssUrl) {
-        ctx.reply('Use:\n<code>/remove rss-url</code>', { parse_mode: 'HTML' } );
-        return;
-    }
 
-    const userId = ctx.message.from?.id;
-    if (rssUrl in feeds) {
-        feeds[rssUrl].delete(userId);
-    }
-    ctx.reply('Unsubscribed from ' + rssUrl);
-    save();
-});
-bot.on('text', async (ctx) => {
-    const rssUrl = ctx.message.text;
-    const userId = ctx.message.from?.id;
-    
-    if (!!patternUrl.test(rssUrl)) {
-        
-        if (rssUrl in feeds) {
-            feeds[rssUrl].add(userId);
-        } else {
-            try {
-                feeder.add({ url: rssUrl, refresh: REFRESH_TIME });
-                feeds[rssUrl] = new Set([userId]);
-            } catch (e) {
-                ctx.reply('Invalid RSS feed');
-                return;
-            }
-        }
-        
-        ctx.reply(`Subscribed to ${rssUrl}`);
-        console.log(`${userId} subscribed to ${rssUrl}`);
-        save();
-    } else {
-        ctx.reply('Un url DIOCANE!');
-    }
-});
+
 
 // ---------- Notifications ----------
 const toSend: {
-    userId: number;
+    name: string;
     title: string;
     link: string;
 }[] = []
+
+
 feeder.on('new-item', (item: any) => {
-    for (const userId of feeds[item.meta.link]) {
-        toSend.push({
-            userId,
-            title: item.title,
-            link: item.link,
-        });
-        // console.log(item['media:content']);
+
+    if (item.title.includes('È morto')) {
+
+            let firstname = item.title.split(' ')[2]
+            let surname = item.title.split(' ')[3]
+
+            toSend.push({
+                name: firstname + ' ' + surname,
+                title: item.title,
+                link: item.link,
+            });
+            console.log(item['media:content']);
+        
     }
 });
+
+
 setInterval(async () => {
     const next = toSend.pop();
     if (next) {
@@ -87,43 +67,24 @@ setInterval(async () => {
         const section = res?.articleSection ?? '';
 
         try {
-            bot.telegram.sendPhoto(next.userId, imgUrl, {
+            bot.telegram.sendPhoto(channelid, imgUrl, {
                 caption: `<a href="${next.link}">${next.title}</a>\n\n${description}\n\n<b>${siteName}</b> ${section ? '#' + section.replace(' ', '') : ''}`,
                 parse_mode: 'HTML',
             });
         } catch (e) {
-            console.log(`Could not send message to ${next.userId}`);
+            console.log(`errore nell'inviare il `);
         }
     }
 }, 500);
+
 feeder.on('error', () => {});
 
-// ---------- DB ----------
-function save() {
-    const data = Object.keys(feeds).map((url) => [url, ...feeds[url]].join(',') ).join('\n');
-    fs.writeFileSync(FILE_PATH, data);
-}
-function load() {
-    if (fs.existsSync(FILE_PATH)) {
-        const urls: string[] = [];
-        const data = fs.readFileSync(FILE_PATH, 'utf-8').split('\n');
-        for (const line of data) {
-            if (line) {
-                const [url, ...userIds] = line.split(',');
-                feeds[url] = new Set(userIds.map((id) => parseInt(id)));
-                urls.push(url);
-            }
-        }
 
-        feeder.add({ url: urls, refresh: REFRESH_TIME });
-        console.log('Loaded feeds from file');
-    }
-}
 
 
 // ---------- START ----------
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 bot.launch();
-load();
+
 console.log('Bot started');
