@@ -19,7 +19,7 @@ const ilpost = 'https://www.ilpost.it/feed'
 feeder.add({ url: ilpost, refresh: REFRESH_TIME });
 
 
-bot.start((ctx) => ctx.reply('Hi! sono vivo!'));
+bot.start((ctx) => ctx.reply('Hi! sono vivo e sono nuovo!'));
 
 
 // ---------- Notifications ----------
@@ -28,17 +28,14 @@ bot.start((ctx) => ctx.reply('Hi! sono vivo!'));
 // every new news 
 feeder.on('new-item', (item: any) => {
 
+    bot.telegram.sendMessage(channelid, item.title + ' ' + item.link)
+
     if (item.title.includes('È morto')) {
 
             let firstname = item.title.split(' ')[2]
             let surname = item.title.split(' ')[3]
 
             sendMorto(item)
-
-
-            
-
-
         
     }
 });
