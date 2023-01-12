@@ -4,7 +4,7 @@
   "description": "A Telegram bot to get your favourites newspapers articles through RSS feed",
   "main": "src/bot.js",
   "scripts": {
-    "start": "node dist/bot.js",
+    "start": "tsc & node dist/bot.js",
     "build": "tsc",
     "dev": "ts-node src/bot.ts"
   },
