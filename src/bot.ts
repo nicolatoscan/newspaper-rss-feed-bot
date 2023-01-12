@@ -9,7 +9,7 @@ dotenv.config();
 const REFRESH_TIME = +(process.env.POLLING_INTERVAL_MINUTES ?? 5);
 
 const feeds: { [url: string]: Set<number> } = {};
-const feeder = new RssFeedEmitter();
+const feeder = new RssFeedEmitter({ skipFirstLoad: true });
 const bot = new Telegraf(process.env.BOT_TOKEN ?? '');
 const channelid = process.env.CHANNEL_ID ?? '';
 
@@ -42,7 +42,9 @@ feeder.on('new-item', (item: any) => {
                 title: item.title,
                 link: item.link,
             });
-            console.log(item['media:content']);
+            
+
+
         
     }
 });
