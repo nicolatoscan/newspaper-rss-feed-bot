@@ -19,6 +19,7 @@ const ilpost = 'https://www.ilpost.it/feed'
 feeder.add({ url: ilpost, refresh: REFRESH_TIME });
 
 
+bot.start((ctx) => ctx.reply('Hi! sono vivo!'));
 
 
 // ---------- Notifications ----------
