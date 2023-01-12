@@ -28,14 +28,13 @@ bot.start((ctx) => ctx.reply('Hi! sono vivo e sono nuovo!'));
 // every new news 
 feeder.on('new-item', (item: any) => {
 
-    bot.telegram.sendMessage(channelid, item.title + ' ' + item.link)
+    
 
     if (item.title.includes('È morto')) {
+        let firstname = item.title.split(' ')[2]
+        let surname = item.title.split(' ')[3]
 
-            let firstname = item.title.split(' ')[2]
-            let surname = item.title.split(' ')[3]
-
-            sendMorto(item)
+        sendMorto(item)
         
     }
 });
