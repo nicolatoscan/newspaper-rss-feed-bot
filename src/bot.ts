@@ -30,7 +30,7 @@ feeder.on('new-item', (item: any) => {
 
     
 
-    if (item.title.includes('È morto')) {
+    if (item.title.includes('È mort')) {
         let firstname = item.title.split(' ')[2]
         let surname = item.title.split(' ')[3]
 
