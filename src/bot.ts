@@ -15,6 +15,8 @@ const channelid = process.env.CHANNEL_ID ?? '';
 
 const ilpost = 'https://www.ilpost.it/feed'
 
+let morto = ''
+
 
 feeder.add({ url: ilpost, refresh: REFRESH_TIME });
 
@@ -34,8 +36,9 @@ feeder.on('new-item', (item: any) => {
         let firstname = item.title.split(' ')[2]
         let surname = item.title.split(' ')[3]
 
-        sendMorto(item)
-        
+        if(morto != surname)
+            sendMorto(item)
+            morto = surname
     }
 });
 
