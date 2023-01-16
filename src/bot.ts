@@ -15,7 +15,7 @@ const channelid = process.env.CHANNEL_ID ?? '';
 
 const ilpost = 'https://www.ilpost.it/feed'
 
-let morto = ''
+const ultimiMorti: string[] = []
 
 
 feeder.add({ url: ilpost, refresh: REFRESH_TIME });
@@ -30,15 +30,16 @@ bot.start((ctx) => ctx.reply('Hi! sono vivo e sono nuovo!'));
 // every new news 
 feeder.on('new-item', (item: any) => {
 
-    
-
     if (item.title.includes('È mort')) {
         let firstname = item.title.split(' ')[2]
         let surname = item.title.split(' ')[3]
 
-        if(morto != surname)
-            sendMorto(item)
-            morto = surname
+        if(!ultimiMorti.includes(item.title)) {
+            sendMorto(item);
+            ultimiMorti.push(item.title);
+            if (ultimiMorti.length > 10)
+                ultimiMorti.shift();
+        }
     }
 });
 
